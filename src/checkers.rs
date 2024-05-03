@@ -3,13 +3,12 @@
 // BLACK: 1
 // BLACK KING: 3
 
-use std::thread::JoinHandle;
-
 use thiserror::Error;
 
 pub struct Checkers {
-    board_state: [[i8; 8]; 8],
-    current_turn: i8
+    pub board_state: [[i8; 8]; 8],
+    pub current_turn: i8,
+    pub required_square: Option<(usize, usize)>
 }
 
 #[derive(Error, Debug)]
@@ -34,10 +33,8 @@ impl Checkers {
                     if i % 2 == 1 {
                         board_state[j][i] = Self::RED_PIECE;
                     }
-                } else {
-                    if i % 2 == 0 {
-                        board_state[j][i] = Self::RED_PIECE;
-                    }
+                } else if i % 2 == 0 {
+                    board_state[j][i] = Self::RED_PIECE;
                 }
             }
         }
@@ -48,10 +45,8 @@ impl Checkers {
                     if i % 2 == 1 {
                         board_state[j][i] = Self::BLACK_PIECE;
                     }
-                } else {
-                    if i % 2 == 0 {
-                        board_state[j][i] = Self::BLACK_PIECE;
-                    }
+                } else if i % 2 == 0 {
+                    board_state[j][i] = Self::BLACK_PIECE;
                 }
             }
         }
@@ -66,6 +61,7 @@ impl Checkers {
         let checkers = Self {
             board_state,
             current_turn: Self::BLACK_PIECE,
+            required_square: None,
         };
         Ok(checkers)
     }
@@ -82,11 +78,11 @@ impl Checkers {
                 }
             }
         }
-        return !still_red || !still_black
+        !still_red || !still_black
     }
 
     pub fn get_current_player(&self) -> i8 {
-        return self.current_turn;
+        self.current_turn
     }
 
     fn can_move_up_right (&self, j_coord: usize, i_coord: usize) -> bool {
@@ -94,9 +90,9 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            -1 => return false,
-            0 => return false, 
-            _ => return self.board_state[j_coord - 1][i_coord + 1] == 0
+            -1 => false,
+            0 => false, 
+            _ => self.board_state[j_coord - 1][i_coord + 1] == 0
         }
     }
 
@@ -105,10 +101,10 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            -1 => return false,
-            0 => return false, 
-            -3 => return (self.board_state[j_coord - 1][i_coord + 1] > 0 && self.board_state[j_coord - 2][i_coord + 2] == 0),
-            _ => return (self.board_state[j_coord - 1][i_coord + 1] < 0 && self.board_state[j_coord - 2][i_coord + 2] == 0),
+            -1 => false,
+            0 => false, 
+            -3 => self.board_state[j_coord - 1][i_coord + 1] > 0 && self.board_state[j_coord - 2][i_coord + 2] == 0,
+            _ => self.board_state[j_coord - 1][i_coord + 1] < 0 && self.board_state[j_coord - 2][i_coord + 2] == 0,
         }
     }
 
@@ -117,9 +113,9 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            -1 => return false,
-            0 => return false, 
-            _ => return self.board_state[j_coord - 1][i_coord - 1] == 0
+            -1 => false,
+            0 => false, 
+            _ => self.board_state[j_coord - 1][i_coord - 1] == 0
         }
     }
 
@@ -128,10 +124,10 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            -1 => return false,
-            0 => return false, 
-            -3 => return (self.board_state[j_coord - 1][i_coord - 1] > 0 && self.board_state[j_coord - 2][i_coord - 2] == 0),
-            _ => return (self.board_state[j_coord - 1][i_coord - 1] < 0 && self.board_state[j_coord - 2][i_coord - 2] == 0),
+            -1 => false,
+            0 => false, 
+            -3 => self.board_state[j_coord - 1][i_coord - 1] > 0 && self.board_state[j_coord - 2][i_coord - 2] == 0,
+            _ => self.board_state[j_coord - 1][i_coord - 1] < 0 && self.board_state[j_coord - 2][i_coord - 2] == 0,
         }
     }
 
@@ -140,9 +136,9 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            1 => return false,
-            0 => return false, 
-            _ => return self.board_state[j_coord + 1][i_coord - 1] == 0
+            1 => false,
+            0 => false, 
+            _ => self.board_state[j_coord + 1][i_coord - 1] == 0
         }
     }
 
@@ -151,10 +147,10 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            1 => return false,
-            0 => return false, 
-            3 => return (self.board_state[j_coord + 1][i_coord - 1] < 0 && self.board_state[j_coord + 2][i_coord - 2] == 0),
-            _ => return (self.board_state[j_coord + 1][i_coord - 1] > 0 && self.board_state[j_coord + 2][i_coord - 2] == 0),
+            1 => false,
+            0 => false, 
+            3 => self.board_state[j_coord + 1][i_coord - 1] < 0 && self.board_state[j_coord + 2][i_coord - 2] == 0,
+            _ => self.board_state[j_coord + 1][i_coord - 1] > 0 && self.board_state[j_coord + 2][i_coord - 2] == 0,
         }
     }
 
@@ -163,9 +159,9 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            1 => return false,
-            0 => return false, 
-            _ => return self.board_state[j_coord + 1][i_coord + 1] == 0
+            1 => false,
+            0 => false, 
+            _ => self.board_state[j_coord + 1][i_coord + 1] == 0
         }
     }
 
@@ -174,10 +170,10 @@ impl Checkers {
             return false
         }
         match self.board_state[j_coord][i_coord] {
-            1 => return false,
-            0 => return false, 
-            3 => return (self.board_state[j_coord + 1][i_coord + 1] < 0 && self.board_state[j_coord + 2][i_coord + 2] == 0),
-            _ => return (self.board_state[j_coord + 1][i_coord + 1] > 0 && self.board_state[j_coord + 2][i_coord + 2] == 0),
+            1 => false,
+            0 => false, 
+            3 => self.board_state[j_coord + 1][i_coord + 1] < 0 && self.board_state[j_coord + 2][i_coord + 2] == 0,
+            _ => self.board_state[j_coord + 1][i_coord + 1] > 0 && self.board_state[j_coord + 2][i_coord + 2] == 0,
         }
     }
 
@@ -211,7 +207,7 @@ impl Checkers {
         }
         
         if return_vec.is_empty() {
-            return Ok(None);
+            Ok(None)
         } else {
             Ok(Some(return_vec))
         }
@@ -222,15 +218,53 @@ impl Checkers {
         self.board_state[square_j][square_i] = value;
     }
 
+    pub fn can_make_move (&self, move_from_j: usize, move_from_i: usize, move_to_j: usize, move_to_i: usize) -> bool{
+        if move_from_j > 7 || move_to_j > 7 || move_from_j < 0 || move_to_j < 0 {
+            return false;
+        }
+        if self.board_state[move_from_j][move_from_i] == 0 || self.board_state[move_to_j][move_to_i] != 0 {
+            return false;
+        }
+        let possible_moves_from_square: Option<Vec<(usize, usize, bool)>> = self.get_possible_moves(move_from_j, move_from_i, self.board_state[move_from_j][move_from_i]).unwrap();
+        if possible_moves_from_square.is_none() {
+            return false;
+        } else {
+            for (j, i, b) in possible_moves_from_square.unwrap() {
+                if j == move_to_j && i == move_to_i {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     pub fn make_move (&mut self, move_from_j: usize, move_from_i: usize, move_to_j: usize, move_to_i: usize) -> Result<(), CheckersError> {
-        if (move_from_j > 7 || move_to_j > 7 || move_from_j < 0 || move_to_j < 0) {
+        if move_from_j > 7 || move_to_j > 7 || move_from_j < 0 || move_to_j < 0 {
             return Err(CheckersError::ImpossibleMove)
         }
         if self.board_state[move_from_j][move_from_i] == 0 || self.board_state[move_to_j][move_to_i] != 0 {
             return Err(CheckersError::ImpossibleMove)
         }
+        if self.board_state[move_from_j][move_from_i] == -1 && move_to_j == 7 {
+            self.board_state[move_from_j][move_from_i] = -3;
+        } else if self.board_state[move_from_j][move_from_i] == 1 && move_to_j == 0 {
+            self.board_state[move_from_j][move_from_i] = 3;
+        }
         self.set_square(move_to_j, move_to_i, self.board_state[move_from_j][move_from_i]);
         self.set_square(move_from_j, move_from_i, 0);
+        if std::cmp::max(move_from_i, move_to_i) - std::cmp::min(move_from_i, move_to_i) > 1 {
+            self.board_state[(move_from_j + move_to_j) / 2][(move_from_i + move_to_i) / 2] = 0;
+            if let Some(vec) = self.get_possible_moves(move_to_j, move_to_i, self.board_state[move_to_j][move_to_i]).unwrap() {
+                for (j, i, b) in vec {
+                    if b {
+                        println!("yes");
+                        self.required_square = Some((move_to_j, move_to_i));
+                        return Ok(())
+                    }
+                }
+                self.required_square = None;
+            }
+        }
         if self.current_turn < 0 {
             self.current_turn = 1;
         } else if self.current_turn > 0 {
