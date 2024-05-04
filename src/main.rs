@@ -25,7 +25,7 @@ impl Piece {
 
 #[macroquad::main("Checkers")]
 async fn main() {
-    let mut checkers: Checkers = Checkers::new().unwrap();
+    let mut checkers: Checkers = Checkers::new().expect("could not initialize checkers");
     let mut current_dragged: Option<(usize, usize)> = None;
     let mut piece_board: [[Option<Piece>; 8]; 8] = [[None; 8]; 8];
     let black_piece_image = load_png("media/bp.png").expect("couldn't load");
@@ -58,7 +58,11 @@ async fn main() {
         if let Some((j, i)) = current_dragged {
             //println!("moving here");
             if let Some(team) = piece_board[j][i] {
-                let possible_places_vec: Option<Vec<(usize, usize, bool)>> = checkers.get_possible_moves(j, i, team.piecekind).unwrap();
+                let possible_places_vec: Option<Vec<(usize, usize, bool)>>;
+                match checkers.get_possible_moves(j, i, team.piecekind){
+                    Ok(r) => possible_places_vec = r,
+                    Err(e) => panic!("incorrect logic somewhere")
+                }
                 match possible_places_vec {
                     Some(vec) => {
                         for (j, i, _b) in vec {
@@ -139,13 +143,13 @@ async fn main() {
                                     if checkers.is_game_over() {
                                         reset_piece_board(&mut piece_board);
                                         current_dragged = None;
-                                        checkers = Checkers::new().unwrap();
+                                        checkers = Checkers::new().expect("could not initialize new checkers");
                                     }
                                 },
                                 Err(e) => {
                                     reset_piece_board(&mut piece_board);
                                     current_dragged = None;
-                                    checkers = Checkers::new().unwrap();
+                                    checkers = Checkers::new().expect("could not initialize new checkers");
                                 },
                             };
                         }
@@ -163,7 +167,7 @@ async fn main() {
         if let Some(required) = checkers.required_square {
             if let Some(dragging) = current_dragged {
                 if dragging != required {
-                    piece_board[dragging.0][dragging.1].unwrap().is_dragging = false;
+                    piece_board[dragging.0][dragging.1].expect("current_dragged info must be wrong").is_dragging = false;
                     current_dragged = None;
                 }
             }
