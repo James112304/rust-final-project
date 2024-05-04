@@ -3,7 +3,7 @@
 // BLACK: 1
 // BLACK KING: 3
 
-use macroquad::miniquad::conf::Icon;
+
 use thiserror::Error;
 use std::sync::Mutex;
 use std::sync::Arc;
@@ -24,7 +24,9 @@ pub enum CheckersError {
     #[error("none of own piece at this square")]
     WrongPiece,
     #[error("cannot move here")]
-    ImpossibleMove
+    ImpossibleMove,
+    #[error("no moves left to make")] 
+    GameOver
 }
 
 #[derive(Clone, Copy)]
@@ -231,7 +233,7 @@ impl Checkers {
             return Err(CheckersError::WrongPiece)
         }
         let mut return_vec: Vec<(usize, usize, bool)> = Vec::new();
-        if let Some((j, i)) = self.required_square {
+        if let Some((_j, _i)) = self.required_square {
             if self.can_jump_up_right(j_coord, i_coord) {
                 return_vec.push((j_coord - 2, i_coord + 2, true));
             }
@@ -404,13 +406,21 @@ impl Checkers {
         if stored_state > 0 && self.current_turn > 0 || stored_state < 0 && self.current_turn < 0 {
             return Ok(())
         } else {
-            let (j, i, m) = self.get_best_move(6, self.current_turn); 
-            println!("best move for {} is {}, {}, {:?}", self.current_turn, j, i, m);
-            Ok(())
+            match self.get_best_move(7, self.current_turn) {
+                Ok((j, i, m)) => {
+                    println!("best move for {} is {}, {}, {:?}", self.current_turn, j, i, m);
+                    if self.current_turn < 0 {
+                        println!("got here");
+                        self.make_move_from_enum(j, i, &m);
+                    }
+                    return Ok(())
+                },
+                Err(e) => return Err(e)
+            } 
         }
 
     }
-    pub fn make_move_from_enum (&mut self, move_from_j: usize, move_from_i: usize, move_to_make: &Move) -> Result<(), CheckersError> {
+    pub fn make_move_from_enum (&mut self, move_from_j: usize, move_from_i: usize, move_to_make: &Move) -> Result<((usize, usize)), CheckersError> {
         let mut current_j = move_from_j;
         let mut current_i = move_from_i;
         match move_to_make {
@@ -515,19 +525,19 @@ impl Checkers {
                 current_j += size;
             }
         }
-        Ok(())
+        Ok((current_j, current_i))
     }
 
-    pub fn get_best_move(&mut self, max_depth: usize, team: i32) -> (usize, usize, Move) {
+    pub fn get_best_move(&mut self, max_depth: usize, _team: i32) -> Result<((usize, usize, Move)), CheckersError> {
         let default: i32;
         if self.current_turn < 0 {
             default = std::i32::MAX;
         } else {
             default = std::i32::MIN;
         }
-        let mut best_move = Arc::new(Mutex::new(None));
-        let mut best_move_from = Arc::new(Mutex::new(None));
-        let mut best_move_score = Arc::new(Mutex::new(default));
+        let best_move = Arc::new(Mutex::new(None));
+        let best_move_from = Arc::new(Mutex::new(None));
+        let best_move_score = Arc::new(Mutex::new(default));
         
         (0..8).into_par_iter().for_each(|j| {
             (0..8).into_par_iter().for_each(|i| {
@@ -557,7 +567,7 @@ impl Checkers {
                         for m in moves_to_make {
                             let mut new_board = *self;
                             new_board.make_move_from_enum(j, i, &m);
-                            println!("hello");
+                            //println!("hello");
                             let score = new_board.minimax(1, max_depth, true, std::i32::MIN, std::i32::MAX);
                             println!("score from {:?} from ({}, {}) is {}", m, j, i, score);
                             let mut best_score = best_move_score.lock().unwrap();
@@ -578,26 +588,25 @@ impl Checkers {
             Some(mov) => {
                 match best_move_from.lock().unwrap().as_ref() {
                     Some((j, i)) => {
-                        return (*j, *i, mov.clone())
+                        return Ok((*j, *i, mov.clone()))
                     }, 
-                    None => panic!("how")
+                    None => return Err(CheckersError::GameOver)
                 }
             },
-            None => panic!("how")
+            None => Err(CheckersError::GameOver)
         }
 
-        panic!("how");
     }
 
     pub fn minimax(&mut self, current_depth: usize, max_depth: usize, is_maximizing_player: bool, mut alpha: i32, mut beta: i32) -> i32 {
-        println!("received");
+        //println!("received");
         if current_depth == max_depth {
             let current = self.evaluate_board();
-            println!("evaluating... {}", current);
+            //println!("evaluating... {}", current);
             return current
         } else {
             if is_maximizing_player {
-                println!("maximizing depth {}", current_depth);
+                //println!("maximizing depth {}", current_depth);
                 let mut bestVal: i32 = std::i32::MIN;
                 for j in 0..8 {
                     for i in 0..8 {
@@ -621,7 +630,7 @@ impl Checkers {
                 }
                 return bestVal;
             } else {
-                println!("not maximizing depth {}", current_depth);
+                //println!("not maximizing depth {}", current_depth);
                 let mut bestVal: i32 = std::i32::MAX;
                 for j in 0..8 {
                     for i in 0..8 {
@@ -862,7 +871,7 @@ impl Checkers {
         for j in 0..8 {
             for i in 0..8 {
                 if self.board_state[j][i] < 0 {
-                    let count = self.how_many_jumped_from_here(j, i, self.board_state[j][i]).0;
+                    let _count = self.how_many_jumped_from_here(j, i, self.board_state[j][i]).0;
                     vulnerable_black += self.how_many_jumped_from_here(j, i, self.board_state[j][i]).0;
                 }
             }
