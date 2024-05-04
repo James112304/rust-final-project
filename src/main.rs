@@ -58,11 +58,11 @@ async fn main() {
         if let Some((j, i)) = current_dragged {
             //println!("moving here");
             if let Some(team) = piece_board[j][i] {
-                let possible_places_vec: Option<Vec<(usize, usize, bool)>>;
-                match checkers.get_possible_moves(j, i, team.piecekind){
-                    Ok(r) => possible_places_vec = r,
-                    Err(e) => panic!("incorrect logic somewhere")
-                }
+                
+                let possible_places_vec: Option<Vec<(usize, usize, bool)>> = match checkers.get_possible_moves(j, i, team.piecekind){
+                    Ok(r) => r,
+                    Err(_e) => panic!("incorrect logic somewhere")
+                };
                 match possible_places_vec {
                     Some(vec) => {
                         for (j, i, _b) in vec {
@@ -83,7 +83,7 @@ async fn main() {
             
         let calculation_x: f32 = ((mouse_position().0 - offset_x) / sq_size).floor();
         let calculation_y: f32 = ((mouse_position().1 - offset_y) / sq_size).floor();
-        if calculation_x >= 0. && calculation_x < 8. && calculation_y >= 0. && calculation_y < 8. {
+        if (0. ..8.).contains(&calculation_x) && (0. ..8.).contains(&calculation_y) {
             let board_x = calculation_x as usize;
             let board_y = calculation_y as usize;
             if is_mouse_button_down(MouseButton::Left) {
@@ -146,7 +146,7 @@ async fn main() {
                                         checkers = Checkers::new().expect("could not initialize new checkers");
                                     }
                                 },
-                                Err(e) => {
+                                Err(_e) => {
                                     reset_piece_board(&mut piece_board);
                                     current_dragged = None;
                                     checkers = Checkers::new().expect("could not initialize new checkers");
@@ -183,13 +183,6 @@ async fn main() {
                         piece.ui_position.1 =  offset_x + (i as f32 + 0.5) * sq_size;
                         piece.ui_position.0 =  offset_y + (j as f32 + 0.5) * sq_size;
                     }
-                    let color: Color;
-                    if piece.piecekind < 0 {
-                        color = RED;
-                    } else {
-                        color = BLACK;
-                    }
-                    //draw_circle(piece.ui_position.1, piece.ui_position.0, circle_radius, color);
                     let piece_texture;
                     match piece.piecekind {
                         1_i32 => piece_texture = &black_piece_texture,
@@ -285,8 +278,8 @@ async fn main() {
     fn image_to_texture(image: image::DynamicImage) -> Texture2D {
         let (width, height) = image.dimensions();
         let rgba_image = image.to_rgba8();
-        let texture = Texture2D::from_rgba8(width as u16, height as u16, &rgba_image);
-        texture
+        
+        Texture2D::from_rgba8(width as u16, height as u16, &rgba_image)
     }
 
     fn reset_piece_board(piece_board: &mut [[Option<Piece>; 8]; 8]) {
