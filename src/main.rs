@@ -1,6 +1,6 @@
 mod checkers;
 
-use std::thread::current;
+
 
 use checkers::{Checkers};
 
@@ -11,11 +11,11 @@ use macroquad::prelude::*;
 pub struct Piece {
     pub board_position: (usize, usize),
     pub ui_position: (f32, f32),
-    pub piecekind: i8,
+    pub piecekind: i32,
     pub is_dragging: bool,
 }
 impl Piece {
-    pub fn new(jpos: usize, ipos: usize, kind: i8) -> Self {
+    pub fn new(jpos: usize, ipos: usize, kind: i32) -> Self {
         Self {
             board_position: (jpos, ipos),
             ui_position: (0., 0.),
@@ -63,7 +63,7 @@ async fn main() {
         let game_size = screen_width().min(screen_height());
         let offset_x = (screen_width() - game_size) / 2. + 10.;
         let offset_y = (screen_height() - game_size) / 2. + 10.;
-        let sq_size = (screen_height() - offset_y * 2.) / 8 as f32;
+        let sq_size = (screen_height() - offset_y * 2.) / 8_f32;
         let circle_radius = 2. * sq_size / 5.;
 
         draw_rectangle(offset_x, offset_y, game_size - 20., game_size - 20., WHITE);
@@ -76,7 +76,7 @@ async fn main() {
                 let possible_places_vec: Option<Vec<(usize, usize, bool)>> = checkers.get_possible_moves(j, i, team.piecekind).unwrap();
                 match possible_places_vec {
                     Some(vec) => {
-                        for (j, i, b) in vec {
+                        for (j, i, _b) in vec {
                             draw_circle(
                                 offset_x + (i as f32 + 0.5) * sq_size,
                                 offset_y + (j as f32 + 0.5) * sq_size,
@@ -107,19 +107,17 @@ async fn main() {
                         // }
                     }
                 }
-            } else {
-                if let Some(mut piece) = &mut piece_board[board_y][board_x] {
-                    //println!("routed");
-                    if piece.piecekind > 0 && black_turn || piece.piecekind < 0 && !black_turn {
-                        if circle_radius.powi(2) > ((mouse_position().0 - piece.ui_position.1).powi(2) + (mouse_position().1 - piece.ui_position.0).powi(2)) {
-                            piece.is_dragging = true;
-                            current_dragged = Some((board_y, board_x));
-                        } else {
-                            current_dragged = None;
-                            piece.is_dragging = false;
-                        }
-                        
+            } else if let Some(mut piece) = &mut piece_board[board_y][board_x] {
+                //println!("routed");
+                if piece.piecekind > 0 && black_turn || piece.piecekind < 0 && !black_turn {
+                    if circle_radius.powi(2) > ((mouse_position().0 - piece.ui_position.1).powi(2) + (mouse_position().1 - piece.ui_position.0).powi(2)) {
+                        piece.is_dragging = true;
+                        current_dragged = Some((board_y, board_x));
+                    } else {
+                        current_dragged = None;
+                        piece.is_dragging = false;
                     }
+                    
                 }
             }
         } else {
@@ -130,7 +128,7 @@ async fn main() {
                         board_y, 
                         board_x
                     ) {
-                        match checkers.make_move(dragged_piece.0,
+                        match checkers.make_move_then_ai(dragged_piece.0,
                             dragged_piece.1, 
                             board_y, 
                             board_x
@@ -195,7 +193,7 @@ async fn main() {
         let game_size = screen_width().min(screen_height());
         let offset_x = (screen_width() - game_size) / 2. + 10.;
         let offset_y = (screen_height() - game_size) / 2. + 10.;
-        let sq_size = (screen_height() - offset_y * 2.) / 8 as f32;
+        let sq_size = (screen_height() - offset_y * 2.) / 8_f32;
 
         draw_rectangle(offset_x, offset_y, game_size - 20., game_size - 20., WHITE);
 
